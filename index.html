@@ -28,17 +28,18 @@
         #crosshair { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background-color: rgba(255, 255, 255, 0.5); border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; pointer-events: none; }
         #fearOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 30%, rgba(150, 0, 0, 0.8) 100%); z-index: 15; opacity: 0; pointer-events: none; mix-blend-mode: multiply; transition: opacity 0.1s; }
         #mobileControls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 40px; z-index: 10; pointer-events: none; opacity: 0.5; }
-        #flashlightBtn { position: absolute; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background-color: rgba(50, 50, 50, 0.6); border: 2px solid #888; color: #fff; font-size: 24px; display: flex; justify-content: center; align-items: center; z-index: 12; cursor: pointer; transition: all 0.2s; user-select: none; -webkit-user-select: none; }
+        #flashlightBtn { position: absolute; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background-color: rgba(50, 50, 50, 0.6); border: 2px solid #888; color: #fff; font-size: 24px; display: flex; justify-content: center; align-items: center; z-index: 12; cursor: pointer; transition: all 0.2s; user-select: none; -webkit-user-select: none; pointer-events: auto; }
         #flashlightBtn.active { background-color: rgba(200, 200, 150, 0.3); border-color: #ffc; box-shadow: 0 0 15px rgba(255, 255, 200, 0.5); }
         #heartrate-container { position: absolute; bottom: 20px; left: 20px; width: 200px; pointer-events: none; z-index: 10; }
-        @media (min-width: 768px) { #mobileControls { display: none; } #flashlightBtn { display: none; } }
+        /* ライトボタンはPCでも表示させるため #flashlightBtn { display: none; } を削除しました */
+        @media (min-width: 768px) { #mobileControls { display: none; } }
     </style>
 </head>
 <body>
 
     <div id="hud" class="hidden">
         <div class="horror-font text-2xl mb-2 text-blue-200" style="text-shadow: 0 0 10px blue;">遺物: <span id="score">0</span> / 3</div>
-        <div class="text-sm text-gray-400 font-sans">バッテリー (FキーでON/OFF)</div>
+        <div class="text-sm text-gray-400 font-sans">バッテリー (Fキーまたは右下ボタン)</div>
         <div class="w-48 h-3 bg-gray-800 border border-gray-600 mt-1 relative">
             <div id="batteryBar" class="h-full bg-green-500 w-full transition-all duration-200"></div>
         </div>
@@ -69,7 +70,7 @@
             マップ上の「電池（緑）」を拾って<br>
             懐中電灯のバッテリーを維持しろ。<br>
             <span class="text-sm text-gray-500 block mt-4 border-t border-gray-800 pt-4">
-                [ PC ] マウスで視点 / WASDで移動 / Fキーでライト<br>
+                [ PC ] マウスで視点 / WASDで移動 / Fキーまたは右下ボタンでライト<br>
                 [ スマホ ] 左スワイプで移動 / 右スワイプで視点 / 右下ボタンでライト
             </span>
         </p>
@@ -174,7 +175,7 @@
         class Game {
             constructor() {
                 this.scene = new THREE.Scene();
-                this.scene.fog = new THREE.FogExp2(0x020202, 0.08); // 黒い霧（開始時）
+                this.scene.fog = new THREE.FogExp2(0x020202, 0.08);
                 
                 this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
                 this.renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -190,7 +191,7 @@
                 this.fluorescentLights = [];
                 this.artifactsCollected = 0;
                 this.inBackrooms = false;
-                this.backroomsOffset = new THREE.Vector3(0, -100, -500); // 異次元の座標
+                this.backroomsOffset = new THREE.Vector3(0, -100, -500);
 
                 this.setupEnvironment();
                 this.setupPlayer();
@@ -202,7 +203,6 @@
             }
 
             setupEnvironment() {
-                // 通常世界の木目テクスチャ
                 const createWoodTexture = (colorStr) => {
                     const canvas = document.createElement('canvas');
                     canvas.width = 512; canvas.height = 512;
@@ -245,7 +245,6 @@
                     this.colliders.push(new THREE.Box3().setFromObject(bMesh));
                 });
 
-                // ポータル（隠しドア）
                 const portalFrameGeo = new THREE.BoxGeometry(10, 12, 1);
                 const portalFrameMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 1 });
                 const portalFrame = new THREE.Mesh(portalFrameGeo, portalFrameMat);
@@ -267,7 +266,6 @@
                     new THREE.Vector3(4, 10, -85)
                 );
 
-                // 部屋
                 this.rooms = [
                     { cx: 0, cz: -60, w: 40, d: 40, door: 'south' }, { cx: -50, cz: 50, w: 30, d: 30, door: 'east' },
                     { cx: 60, cz: 40, w: 40, d: 30, door: 'west' }, { cx: -60, cz: -10, w: 25, d: 25, door: 'east' },
@@ -295,7 +293,6 @@
                     marker.rotation.x = -Math.PI / 2; marker.position.set(dx, 0.05, dz); this.scene.add(marker);
                 });
 
-                // 通路の障害物
                 for (let i = 0; i < 60; i++) {
                     const x = (Math.random() - 0.5) * 160, z = (Math.random() - 0.5) * 160;
                     let inRoom = false;
@@ -304,7 +301,6 @@
                     if (!inRoom) createWall(x, z, 2 + Math.random() * 6, 2 + Math.random() * 6);
                 }
 
-                // 遺物
                 const artifactGeo = new THREE.OctahedronGeometry(0.5);
                 const artifactMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true });
                 for (let i = 0; i < TOTAL_ARTIFACTS; i++) {
@@ -314,9 +310,8 @@
                     this.scene.add(artifact); this.artifacts.push({ mesh: artifact, collected: false });
                 }
                 
-                // 通常世界の電池
                 const batteryGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.6, 8);
-                const batteryMat = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00aa00, emissiveIntensity: 2.0 }); // 発光で代用
+                const batteryMat = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00aa00, emissiveIntensity: 2.0 });
                 for (let i = 0; i < 8; i++) {
                     const battery = new THREE.Mesh(batteryGeo, batteryMat);
                     battery.rotation.z = Math.PI / 2; 
@@ -325,7 +320,6 @@
                     this.batteries.push(batObj); this.respawnBattery(batObj);
                 }
 
-                // 点滅する蛍光灯
                 const tubeGeo = new THREE.CylinderGeometry(0.1, 0.1, 4, 8); tubeGeo.rotateZ(Math.PI / 2);
                 for (let i = 0; i < 15; i++) {
                     const lx = (Math.random() - 0.5) * 160, lz = (Math.random() - 0.5) * 160;
@@ -337,22 +331,21 @@
             }
 
             setupBackrooms() {
-                // Backrooms特有のテクスチャ
                 const createBRWallTexture = () => {
                     const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512; const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#dcb46a'; ctx.fillRect(0, 0, 512, 512); // くすんだ黄色
+                    ctx.fillStyle = '#dcb46a'; ctx.fillRect(0, 0, 512, 512);
                     ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(150, 100, 30, 0.15)';
                     for(let x = 0; x < 512; x += 32) {
                         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
                         for(let y = 0; y < 512; y += 64) { ctx.beginPath(); ctx.arc(x + 16, y + 32, 10, 0, Math.PI*2); ctx.stroke(); }
                     }
-                    ctx.fillStyle = '#5c4b33'; ctx.fillRect(0, 480, 512, 32); // 幅木
+                    ctx.fillStyle = '#5c4b33'; ctx.fillRect(0, 480, 512, 32); 
                     const tex = new THREE.CanvasTexture(canvas); tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2, 2); tex.needsUpdate = true; return tex;
                 };
 
                 const createBRFloorTexture = () => {
                     const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512; const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#8c7e5a'; ctx.fillRect(0, 0, 512, 512); // カーペット
+                    ctx.fillStyle = '#8c7e5a'; ctx.fillRect(0, 0, 512, 512); 
                     ctx.fillStyle = 'rgba(50, 40, 20, 0.1)';
                     for(let i = 0; i < 15000; i++) { ctx.fillRect(Math.random() * 512, Math.random() * 512, 3, 3); }
                     for(let i = 0; i < 20; i++) { ctx.beginPath(); ctx.arc(Math.random() * 512, Math.random() * 512, 10 + Math.random() * 40, 0, Math.PI*2); ctx.fill(); }
@@ -361,14 +354,13 @@
 
                 const createBRCeilTexture = () => {
                     const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256; const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#e0e0e0'; ctx.fillRect(0, 0, 256, 256); // オフィス天井
+                    ctx.fillStyle = '#e0e0e0'; ctx.fillRect(0, 0, 256, 256); 
                     ctx.strokeStyle = '#999999'; ctx.lineWidth = 4; ctx.strokeRect(0, 0, 256, 256);
                     ctx.fillStyle = 'rgba(0,0,0,0.02)';
                     for(let i=0; i<100; i++) ctx.fillRect(Math.random()*256, Math.random()*256, 10, 10);
                     const tex = new THREE.CanvasTexture(canvas); tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(20, 20); tex.needsUpdate = true; return tex;
                 };
 
-                // 光源計算を省き、テクスチャが直接見えるBasicMaterialを使用して負荷を激減
                 const brWallMat = new THREE.MeshBasicMaterial({ map: createBRWallTexture() });
                 const brFloorMat = new THREE.MeshBasicMaterial({ map: createBRFloorTexture() });
                 const brCeilMat = new THREE.MeshBasicMaterial({ map: createBRCeilTexture() });
@@ -389,15 +381,14 @@
 
                 for (let i = 0; i < 150; i++) {
                     const x = (Math.random() - 0.5) * 360, z = (Math.random() - 0.5) * 360;
-                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue; // スタート位置除外
-                    if (Math.abs(x) < 25 && z < -70 && z > -190) continue; // 階段エリアを除外
+                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue; 
+                    if (Math.abs(x) < 25 && z < -70 && z > -190) continue; 
                     const w = 4 + Math.random() * 10, d = 4 + Math.random() * 10;
                     const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 10, d), brWallMat);
                     wall.position.set(this.backroomsOffset.x + x, 5, this.backroomsOffset.z + z);
                     this.scene.add(wall); this.colliders.push(new THREE.Box3().setFromObject(wall));
                 }
 
-                // 疑似的な天井照明（ただの白い棒にして負荷を減らす）
                 const tubeGeo = new THREE.CylinderGeometry(0.1, 0.1, 4, 8); tubeGeo.rotateZ(Math.PI / 2);
                 const tubeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                 for (let i = 0; i < 40; i++) {
@@ -408,7 +399,6 @@
                     this.scene.add(tubeMesh);
                 }
 
-                // 階段
                 this.stairZone = { minX: -10, maxX: 10, startZ: -80, endZ: -180, startY: 2, endY: 30 };
                 const stairGroup = new THREE.Group();
                 const marbleMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -426,7 +416,6 @@
                 stairGroup.position.set(this.backroomsOffset.x, 0, this.backroomsOffset.z + this.stairZone.startZ);
                 this.scene.add(stairGroup);
 
-                // 階段の頂上の光
                 const heavenlyLight = new THREE.PointLight(0xffffff, 5.0, 100);
                 heavenlyLight.position.set(this.backroomsOffset.x, this.stairZone.endY + 10, this.backroomsOffset.z + this.stairZone.endZ);
                 this.scene.add(heavenlyLight);
@@ -435,7 +424,6 @@
                 const lWall = new THREE.Mesh(stairWallGeo, new THREE.MeshBasicMaterial({visible:false})); lWall.position.set(this.backroomsOffset.x - 11, this.stairZone.endY/2, this.backroomsOffset.z + (this.stairZone.startZ + this.stairZone.endZ)/2); this.scene.add(lWall); this.colliders.push(new THREE.Box3().setFromObject(lWall));
                 const rWall = new THREE.Mesh(stairWallGeo, new THREE.MeshBasicMaterial({visible:false})); rWall.position.set(this.backroomsOffset.x + 11, this.stairZone.endY/2, this.backroomsOffset.z + (this.stairZone.startZ + this.stairZone.endZ)/2); this.scene.add(rWall); this.colliders.push(new THREE.Box3().setFromObject(rWall));
 
-                // 案内矢印
                 const createArrowTexture = () => {
                     const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256; const ctx = canvas.getContext('2d');
                     ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.fillRect(0, 0, 256, 256);
@@ -454,7 +442,6 @@
                     arrowGroup.lookAt(targetStairPos); this.scene.add(arrowGroup);
                 }
 
-                // Backrooms用電池 (30個)
                 const batteryGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.6, 8);
                 const batteryMat = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00aa00, emissiveIntensity: 2.0 });
                 for (let i = 0; i < 30; i++) {
@@ -492,7 +479,8 @@
             setupPlayer() {
                 this.player = { speed: 5.0, radius: 1.0, battery: 100, flashlightOn: true, velocity: new THREE.Vector3() };
                 this.heartRate = 70; this.camera.position.set(0, 2, 0);
-                this.flashlight = new THREE.SpotLight(0xffeedd, 3.0, 60, Math.PI / 5, 0.5, 1);
+                // ライトの明るさと照射距離を強化 (intensity: 8.0, distance: 100, angle: Math.PI / 4)
+                this.flashlight = new THREE.SpotLight(0xffeedd, 8.0, 100, Math.PI / 4, 0.5, 1);
                 this.flashlight.position.set(0, 0, 0); this.flashlight.target.position.set(0, 0, -1);
                 this.camera.add(this.flashlight); this.camera.add(this.flashlight.target); this.scene.add(this.camera);
                 this.ambientLight = new THREE.AmbientLight(0x111122, 0.1); this.scene.add(this.ambientLight);
@@ -615,7 +603,6 @@
                 this.camera.position.set(this.backroomsOffset.x, 2, this.backroomsOffset.z);
                 this.enemy.mesh.position.set(this.backroomsOffset.x, 2, this.backroomsOffset.z + 50);
                 
-                // 霧を黄色くする
                 this.scene.fog.density = 0.02; 
                 this.scene.fog.color.setHex(0xaaaa66); 
                 
@@ -675,9 +662,11 @@
                         this.player.battery -= dt * 1.5; 
                         if (this.player.battery <= 0) { this.player.battery = 0; this.toggleFlashlight(true); }
                         this.updateBatteryUI();
-                        this.flashlight.intensity = Math.random() < (this.player.battery < 20 ? 0.1 : 0.02) ? 1.0 + Math.random() * 2.0 : 3.0;
+                        // 通常時のライトの明るさを強化 (ベースを8.0に変更)
+                        this.flashlight.intensity = Math.random() < (this.player.battery < 20 ? 0.1 : 0.02) ? 2.0 + Math.random() * 3.0 : 8.0;
                     } else {
-                        this.flashlight.intensity = 3.0;
+                        // Backrooms内でも明るさを強化
+                        this.flashlight.intensity = 8.0;
                     }
                 }
 
@@ -723,7 +712,6 @@
                     }
                 });
 
-                // --- 敵の追跡 と 心拍数 ---
                 if (this.enemy && this.enemy.active) {
                     const dir = new THREE.Vector3().subVectors(this.camera.position, this.enemy.mesh.position); dir.y = 0;
                     const dist = dir.length();
@@ -746,7 +734,6 @@
 
                     if (dist > 0) {
                         dir.normalize(); this.enemy.mesh.lookAt(this.camera.position.x, this.enemy.mesh.position.y, this.camera.position.z);
-                        // Backrooms内では敵の速度を1.5倍にする
                         let currentSpeed = this.enemy.baseSpeed;
                         if (this.inBackrooms) {
                             currentSpeed *= 1.5; 
@@ -775,7 +762,10 @@
                 startScreen.classList.add('hidden'); gameOverScreen.classList.add('hidden'); clearScreen.classList.add('hidden');
                 hud.classList.remove('hidden'); heartrateContainer.classList.remove('hidden'); crosshair.classList.remove('hidden'); fearOverlay.style.opacity = 0;
                 
-                if (window.innerWidth < 768 || ('ontouchstart' in window)) { mobileControls.classList.remove('hidden'); flashlightBtn.classList.remove('hidden'); }
+                // スマホ用の移動UI表示。PC・スマホ問わずライトボタンは表示する
+                if (window.innerWidth < 768 || ('ontouchstart' in window)) { mobileControls.classList.remove('hidden'); }
+                flashlightBtn.classList.remove('hidden');
+
                 if (game) game.dispose(); game = new Game();
                 
                 AudioEngine.startBGM(); game.clock.start(); animationFrameId = requestAnimationFrame(gameLoop);
